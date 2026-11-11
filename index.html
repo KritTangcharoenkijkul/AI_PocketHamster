@@ -1,0 +1,786 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#22222a">
+<title>POCKET HAMSTER - a virtual pet</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#1c1c22;overflow:hidden;touch-action:none;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+body{display:flex;align-items:center;justify-content:center}
+#shell{position:relative;width:min(100vw,470px);height:min(100vh,880px);height:min(100dvh,880px);
+  background:linear-gradient(160deg,#d9d4c7,#bdb8aa);display:flex;flex-direction:column;align-items:center;
+  padding:max(14px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom));gap:6px}
+@media (min-width:480px) and (min-height:600px){#shell{border-radius:18px 18px 64px 18px;box-shadow:0 10px 40px #000a, inset 0 -6px 0 #0002}}
+#screencol{display:flex;flex-direction:column;align-items:center;gap:4px}
+#bezel{background:#4b4e5e;border-radius:10px 10px 34px 10px;padding:14px 20px 18px;box-shadow:inset 0 2px 6px #0008}
+#lcd{display:block;image-rendering:pixelated;image-rendering:crisp-edges;background:#e0f8d0;width:320px;height:288px}
+#brand{font-weight:800;font-style:italic;letter-spacing:.18em;color:#3b3f7a;font-size:13px}
+#brand small{font-weight:600;font-style:normal;letter-spacing:.05em;color:#6b6f86;font-size:9px;margin-left:6px}
+#pad{position:relative;flex:1;width:100%;max-height:330px;min-height:190px}
+#dpad{position:absolute;left:5%;top:8%;width:142px;height:142px;touch-action:none}
+#dpad .bar{position:absolute;background:#2a2b33;border-radius:7px;box-shadow:0 3px 0 #111}
+#dpad .h{left:0;right:0;top:34%;height:32%}
+#dpad .v{top:0;bottom:0;left:34%;width:32%}
+#dpad .hub{position:absolute;left:38%;top:38%;width:24%;height:24%;border-radius:50%;background:#1d1e24}
+#dpad .arw{position:absolute;color:#5a5c68;font-size:13px;pointer-events:none}
+#dpad .au{left:50%;top:6%;transform:translateX(-50%)}#dpad .ad{left:50%;bottom:6%;transform:translateX(-50%)}
+#dpad .al{left:7%;top:50%;transform:translateY(-50%)}#dpad .ar{right:7%;top:50%;transform:translateY(-50%)}
+#dpad.up .v{background:linear-gradient(#3c3d48 0 40%,#2a2b33 40%)}#dpad.down .v{background:linear-gradient(#2a2b33 0 60%,#3c3d48 60%)}
+#dpad.left .h{background:linear-gradient(90deg,#3c3d48 0 40%,#2a2b33 40%)}#dpad.right .h{background:linear-gradient(90deg,#2a2b33 0 60%,#3c3d48 60%)}
+#ab{position:absolute;right:4%;top:6%;width:158px;height:130px;transform:rotate(-22deg)}
+.round{position:absolute;width:64px;height:64px;border-radius:50%;background:#8d1f4f;box-shadow:0 4px 0 #4f0f2b;
+  color:#f3c6d8;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center;touch-action:none}
+.round.on,.pill.on{transform:translateY(3px);box-shadow:0 1px 0 #111}
+#btnB{left:4px;top:52px}#btnA{right:4px;top:14px}
+#ss{position:absolute;left:0;right:0;bottom:6%;display:flex;justify-content:center;gap:34px}
+.pillwrap{display:flex;flex-direction:column;align-items:center;gap:5px;transform:rotate(-22deg);font-size:10px;font-weight:700;letter-spacing:.1em;color:#3b3f7a}
+.pill{width:58px;height:18px;border-radius:9px;background:#7d7f8c;box-shadow:0 3px 0 #4a4b55;touch-action:none}
+#keys{position:absolute;left:0;right:0;bottom:2px;text-align:center;font-size:10px;color:#77746a;display:none}
+@media (hover:hover) and (pointer:fine){#keys{display:block}}
+@media (max-width:430px){#shell{padding-left:6px;padding-right:6px}#bezel{padding:10px 10px 14px}}
+/* phone held sideways: d-pad left, screen centre, buttons right */
+@media (orientation:landscape) and (max-height:520px){
+  #shell{width:100vw;height:100vh;height:100dvh;flex-direction:row;justify-content:center;border-radius:0;
+    padding:6px max(10px,env(safe-area-inset-right)) 6px max(10px,env(safe-area-inset-left))}
+  #pad{position:static;flex:none;width:0;min-height:0}
+  #brand{display:none}
+  #bezel{padding:8px 12px 10px}
+  #dpad{left:max(18px,env(safe-area-inset-left));top:50%;transform:translateY(-62%)}
+  #ab{right:max(10px,env(safe-area-inset-right));top:50%;transform:translateY(-70%) rotate(-22deg)}
+  #ss{bottom:8px;justify-content:space-between;padding:0 44px}
+  #keys{display:none}
+}
+</style>
+</head>
+<body>
+<div id="shell">
+  <div id="screencol">
+    <div id="bezel"><canvas id="lcd" width="160" height="144"></canvas></div>
+    <div id="brand">POCKET HAMSTER<small>VIRTUAL PET</small></div>
+  </div>
+  <div id="pad">
+    <div id="dpad"><div class="bar h"></div><div class="bar v"></div><div class="hub"></div>
+      <span class="arw au">&#9650;</span><span class="arw ad">&#9660;</span><span class="arw al">&#9664;</span><span class="arw ar">&#9654;</span></div>
+    <div id="ab"><div class="round" id="btnB" data-btn="b">B</div><div class="round" id="btnA" data-btn="a">A</div></div>
+    <div id="ss">
+      <div class="pillwrap"><div class="pill" data-btn="select"></div>SELECT</div>
+      <div class="pillwrap"><div class="pill" data-btn="start"></div>START</div>
+    </div>
+    <div id="keys">Keyboard: arrows = D-pad &middot; Z = A &middot; X = B &middot; Enter = Start &middot; Shift = Select</div>
+  </div>
+</div>
+<script>
+const HSPR = {
+  idle1:[
+    "................",
+    "....33....33....",
+    "...3123..3123...",
+    "...3113333113...",
+    "..300000000003..",
+    ".30000000000003.",
+    ".30000033003303.",
+    ".30000033003303.",
+    "330001100220113.",
+    ".30011100330113.",
+    ".30000000000003.",
+    ".31000300300013.",
+    ".31100000000113.",
+    "..311000000113..",
+    "...3333333333...",
+    "..333....333...."
+  ],
+  idle2:[
+    "................",
+    "....33....33....",
+    "...3123..3123...",
+    "...3113333113...",
+    "..300000000003..",
+    ".30000000000003.",
+    ".30000000000003.",
+    ".30000033003303.",
+    "330001100220113.",
+    ".30011100330113.",
+    ".30000000000003.",
+    ".31000300300013.",
+    ".31100000000113.",
+    "..311000000113..",
+    "...3333333333...",
+    "..333....333...."
+  ],
+  walk1:[
+    "................",
+    "....33....33....",
+    "...3123..3123...",
+    "...3113333113...",
+    "..300000000003..",
+    ".30000000000003.",
+    ".30000033003303.",
+    ".30000033003303.",
+    "330001100220113.",
+    ".30011100330113.",
+    ".30000000000003.",
+    ".31000300300013.",
+    ".31100000000113.",
+    "..311000000113..",
+    "...3333333333...",
+    "..333.....333..."
+  ],
+  walk2:[
+    "................",
+    "....33....33....",
+    "...3123..3123...",
+    "...3113333113...",
+    "..300000000003..",
+    ".30000000000003.",
+    ".30000033003303.",
+    ".30000033003303.",
+    "330001100220113.",
+    ".30011100330113.",
+    ".30000000000003.",
+    ".31000300300013.",
+    ".31100000000113.",
+    "..311000000113..",
+    "...3333333333...",
+    "....333.333....."
+  ],
+  eat1:[
+    "................",
+    "....33....33....",
+    "...3123..3123...",
+    "...3113333113...",
+    "..300000000003..",
+    ".30000000000003.",
+    ".30000033003303.",
+    ".30000033003303.",
+    "331111100221113.",
+    ".31111003231113.",
+    ".30000032123003.",
+    ".31003003230313.",
+    ".31100000000113.",
+    "..311000000113..",
+    "...3333333333...",
+    "..333....333...."
+  ],
+  eat2:[
+    "................",
+    "....33....33....",
+    "...3123..3123...",
+    "...3113333113...",
+    "..300000000003..",
+    ".30000000000003.",
+    ".30000033003303.",
+    ".30000033003303.",
+    "331111100221113.",
+    ".31111003301113.",
+    ".30000003230003.",
+    ".31003032123313.",
+    ".31100003230113.",
+    "..311000000113..",
+    "...3333333333...",
+    "..333....333...."
+  ],
+  sleep1:[
+    "................",
+    "...........333..",
+    "............3...",
+    "...........333..",
+    "................",
+    "................",
+    "....33333333....",
+    "..330000000033..",
+    ".30000000003113.",
+    "3000000000000003",
+    "3000000333000113",
+    "3110000000002213",
+    "3111000000000013",
+    ".31110000000013.",
+    "..333333333333..",
+    "................"
+  ],
+  sleep2:[
+    "..........3333..",
+    "............3...",
+    "...........3....",
+    "..........3333..",
+    "................",
+    "................",
+    "...3333333333...",
+    "..330000000033..",
+    ".30000000003113.",
+    "3000000000000003",
+    "3000000333000113",
+    "3110000000002213",
+    "3111000000000013",
+    ".31110000000013.",
+    "..333333333333..",
+    "................"
+  ],
+  happy:[
+    "................",
+    "....33....33....",
+    "...3123..3123...",
+    "...3113333113...",
+    "3.300000000003.3",
+    "3300000000000033",
+    ".30000003000303.",
+    ".30000303030333.",
+    "330001100220113.",
+    ".30011100330113.",
+    ".30000000000003.",
+    ".31000000000013.",
+    ".31100000000113.",
+    "..311000000113..",
+    "...3333333333...",
+    "..333....333...."
+  ],
+  sad:[
+    "................",
+    "................",
+    "................",
+    ".33.33333333.33.",
+    "3113000000003113",
+    "3123000000003213",
+    ".33000033003303.",
+    ".30000033003303.",
+    "330001100220213.",
+    ".30011100330213.",
+    ".30000003003003.",
+    ".31000300300013.",
+    ".31100000000113.",
+    "..311000000113..",
+    "...3333333333...",
+    "..333....333...."
+  ],
+  sick:[
+    "................",
+    "....33....33....",
+    "...3123..3123.2.",
+    "...3113333113212",
+    "..3000000000032.",
+    ".30003030000003.",
+    ".30000300003303.",
+    ".30003030003303.",
+    "330001100220113.",
+    ".300111003222223",
+    ".30000000000003.",
+    ".31000300300013.",
+    ".31100000000113.",
+    "..311000000113..",
+    "...3333333333...",
+    "..333....333...."
+  ],
+  seed:[
+    "................",
+    "................",
+    "................",
+    "................",
+    ".......33.......",
+    "......3123......",
+    ".....312213.....",
+    ".....312213.....",
+    ".....312213.....",
+    ".....312213.....",
+    "......3123......",
+    ".......33.......",
+    "................",
+    "................",
+    "................",
+    "................"
+  ],
+  carrot:[
+    "................",
+    "................",
+    "................",
+    "................",
+    "........3.3.....",
+    ".........32.....",
+    ".......3333.....",
+    "......31113.....",
+    "......31213.....",
+    ".....31113......",
+    ".....3113.......",
+    ".....333........",
+    "................",
+    "................",
+    "................",
+    "................"
+  ],
+  treat:[
+    "................",
+    "................",
+    "................",
+    "................",
+    "......3333......",
+    ".....311113.....",
+    "....31311113....",
+    "....31111313....",
+    "....31131113....",
+    "....31111113....",
+    ".....311313.....",
+    "......3333......",
+    "................",
+    "................",
+    "................",
+    "................"
+  ],
+  poop:[
+    "................",
+    "................",
+    "................",
+    "................",
+    ".......33.......",
+    "......3223......",
+    "......3213......",
+    ".....322223.....",
+    ".....321223.....",
+    "....32222223....",
+    "....32122223....",
+    ".....333333.....",
+    "................",
+    "................",
+    "................",
+    "................"
+  ],
+  heart:[
+    "................",
+    "................",
+    "................",
+    "................",
+    ".....33..33.....",
+    "....32233223....",
+    "....32122223....",
+    "....32222223....",
+    ".....322223.....",
+    "......3223......",
+    ".......33.......",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................"
+  ],
+  pill:[
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    ".....333333.....",
+    "....30013223....",
+    "....30013223....",
+    ".....333333.....",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................",
+    "................"
+  ]
+};
+if (typeof module !== 'undefined') module.exports = HSPR;
+
+</script>
+<script>
+
+</script>
+<script>
+(() => {
+'use strict';
+// =====================================================================================
+// LOOMFALL - pocket tactics. Single-file engine: 160x144, 4 shades, D-pad + A/B/Start/Select.
+// =====================================================================================
+const W = 160, H = 144, TS = 16;
+const cv = document.getElementById('lcd');
+const cx = cv.getContext('2d');
+cx.imageSmoothingEnabled = false;
+
+const PALS = [
+  ['#e0f8d0', '#88c070', '#346856', '#081820'],   // classic green
+  ['#f8ecd8', '#d8a868', '#885838', '#2a1810'],   // sepia
+  ['#fbe9f0', '#e6a0c0', '#7c5aa6', '#221a3c'],   // sakura
+  ['#eeeeee', '#aaaaaa', '#606060', '#121212'],   // grey
+];
+let palIdx = 0, C = PALS[0];
+
+// ------------------------------------------------------------------ storage (safe in sandboxes)
+const mem = {};                                   // in-memory fallback when the host blocks localStorage
+const store = {
+  get(k) { try { const v = JSON.parse(localStorage.getItem(k)); if (v !== null) return v; } catch (e) {} return (k in mem) ? JSON.parse(mem[k]) : null; },
+  set(k, v) { mem[k] = JSON.stringify(v); try { localStorage.setItem(k, mem[k]); } catch (e) {} },
+};
+
+// ------------------------------------------------------------------ font (3x5)
+const FONT = {};
+(() => {
+  const d = {
+    A: '.#.#.#####.##.#', B: '##.#.###.#.###.', C: '.###..#..#...##', D: '##.#.##.##.###.', E: '####..##.#..###',
+    F: '####..##.#..#..', G: '.###..#.##.#.##', H: '#.##.#####.##.#', I: '###.#..#..#.###', J: '..#..#..##.#.#.',
+    K: '#.##.###.#.##.#', L: '#..#..#..#..###', M: '#.#######.##.#', N: '#.############.#', O: '.#.#.##.##.#.#.',
+    P: '##.#.###.#..#..', Q: '.#.#.##.####.##', R: '##.#.###.#.##.#', S: '.###...#...###.', T: '###.#..#..#..#.',
+    U: '#.##.##.##.####', V: '#.##.##.##.#.#.', W: '#.##.########.#', X: '#.##.#.#.#.##.#', Y: '#.##.#.#..#..#.',
+    Z: '###..#.#.#..###', 0: '####.##.##.####', 1: '.#.##..#..#.###', 2: '##...#.#.#..###', 3: '##...#.#...###.',
+    4: '#.##.####..#..#', 5: '####..##...###.', 6: '.###..####.####', 7: '###..#.#..#..#.', 8: '####.#####.####',
+    9: '####.####..###.', '.': '.............#.', ',': '..........#.#..', '!': '.#..#..#.....#.', '?': '##...#.#.....#.',
+    "'": '.#..#..........', '-': '......###......', ':': '....#.....#....', '/': '..#..#.#.#..#..', '+': '....#.###.#....',
+    '%': '#.#..#.#.#..#.#', '(': '.#.#..#..#...#.', ')': '.#...#..#..#.#.', '>': '#...#...#.#.#..', '<': '..#.#.#...#...#',
+    '=': '...###...###...', '*': '...#.#.#.#.#...',
+  };
+  d['0'] = '.#.#.##.##.#.#.'; d.O = '####.##.##.####'; d.D = '##.#.##.##.###.';
+  for (const k in d) FONT[k] = { w: 3, b: d[k].padEnd(15, '.') };
+  FONT.M = { w: 5, b: '#...###.###.#.##...##...#' };
+  FONT.W = { w: 5, b: '#...##...##.#.###.###...#' };
+  FONT.N = { w: 4, b: '#..###.##.###..##..#' };
+  FONT[' '] = { w: 2, b: '' };
+})();
+const gw = (ch) => (FONT[ch] ? FONT[ch].w : 3) + 1;
+function txt(s, x, y, c = 3, sc = 1) {
+  s = String(s).toUpperCase();
+  cx.fillStyle = C[c];
+  let px = x;
+  for (const ch of s) {
+    const g = FONT[ch];
+    if (g) for (let i = 0; i < g.b.length; i++) if (g.b[i] === '#') cx.fillRect(px + (i % g.w) * sc, y + ((i / g.w) | 0) * sc, sc, sc);
+    px += gw(ch) * sc;
+  }
+}
+const tw = (s, sc = 1) => { let n = 0; for (const ch of String(s).toUpperCase()) n += gw(ch); return Math.max(0, n - 1) * sc; };
+const txtC = (s, y, c = 3, sc = 1) => txt(s, Math.round((W - tw(s, sc)) / 2), y, c, sc);
+const txtR = (s, xr, y, c = 3, sc = 1) => txt(s, xr - tw(s, sc), y, c, sc);
+function wrap(s, px, sc = 1) {
+  const out = []; let line = '';
+  for (const w of String(s).split(' ')) {
+    if (tw((line + ' ' + w).trim(), sc) > px) { if (line) out.push(line); line = w; }
+    else line = (line + ' ' + w).trim();
+  }
+  if (line) out.push(line);
+  return out;
+}
+function box(x, y, w, h, fill = 0, border = 3) {
+  cx.fillStyle = C[border]; cx.fillRect(x, y, w, h);
+  cx.fillStyle = C[fill]; cx.fillRect(x + 1, y + 1, w - 2, h - 2);
+  cx.fillStyle = C[border];
+  cx.fillRect(x, y, 1, 1); // keep corners square (retro)
+}
+function rect(x, y, w, h, c) { cx.fillStyle = C[c]; cx.fillRect(x, y, w, h); }
+
+// ------------------------------------------------------------------ audio
+let AC = null, soundOn = true;
+function initAudio() {
+  if (!AC) { try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; } }
+  if (AC && AC.state === 'suspended') AC.resume().catch(() => {});
+}
+function tone(f, d, type = 'square', v = 0.05, t0 = 0, slide = 0) {
+  if (!AC || !soundOn) return;
+  try {
+    const t = AC.currentTime + t0, o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, f + slide), t + d);
+    g.gain.setValueAtTime(v, t); g.gain.exponentialRampToValueAtTime(0.0001, t + d);
+    o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + d + 0.03);
+  } catch (e) {}
+}
+function noise(d, v = 0.07) {
+  if (!AC || !soundOn) return;
+  try {
+    const n = Math.floor(AC.sampleRate * d), b = AC.createBuffer(1, n, AC.sampleRate), ch = b.getChannelData(0);
+    for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    const s = AC.createBufferSource(), g = AC.createGain(); g.gain.value = v;
+    s.buffer = b; s.connect(g); g.connect(AC.destination); s.start();
+  } catch (e) {}
+}
+const SFX = {
+  move: () => tone(700, .03, 'square', .025),
+  ok: () => { tone(880, .05); tone(1320, .07, 'square', .04, .05); },
+  back: () => tone(330, .07, 'square', .04),
+  err: () => tone(150, .12, 'square', .05),
+  step: () => tone(200, .025, 'square', .02),
+  hit: () => { noise(.12); tone(160, .12, 'square', .06, 0, -90); },
+  crit: () => { noise(.22, .1); tone(900, .08, 'square', .06); tone(120, .2, 'square', .07, .06, -70); },
+  miss: () => tone(1300, .07, 'triangle', .04, 0, -800),
+  heal: () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .09, 'triangle', .06, i * .07)),
+  lvl: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, .1, 'square', .05, i * .08)),
+  die: () => tone(400, .35, 'square', .06, 0, -340),
+  win: () => [523, 523, 523, 698, 880, 784, 1047].forEach((f, i) => tone(f, .14, 'square', .05, i * .12)),
+  lose: () => [392, 370, 349, 262].forEach((f, i) => tone(f, .25, 'triangle', .07, i * .22)),
+};
+const TRACKS = {
+  title: { step: .24, lead: [69, 0, 72, 76, 74, 0, 72, 0, 69, 0, 67, 69, 64, 0, 0, 0, 65, 0, 69, 72, 71, 0, 69, 0, 68, 0, 71, 74, 76, 0, 0, 0], bass: [45, 45, 45, 40, 41, 41, 40, 40] },
+  player: { step: .2, lead: [72, 76, 79, 76, 77, 76, 74, 72, 74, 77, 81, 77, 79, 77, 76, 74, 72, 76, 79, 84, 83, 79, 76, 79, 81, 79, 77, 74, 76, 0, 72, 0], bass: [48, 53, 50, 55, 48, 52, 53, 55] },
+  enemy: { step: .2, lead: [57, 0, 60, 57, 64, 0, 63, 0, 57, 0, 60, 57, 65, 0, 64, 0, 55, 0, 58, 55, 62, 0, 61, 0, 57, 60, 64, 69, 68, 0, 64, 0], bass: [45, 45, 45, 45, 43, 43, 45, 40] },
+};
+let mus = null;
+const midi = (n) => 440 * Math.pow(2, (n - 69) / 12);
+function music(name) { if (mus && mus.name === name) return; mus = name ? { name, i: 0, next: 0 } : null; }
+setInterval(() => {
+  if (!AC || !soundOn || !mus || AC.state !== 'running') return;
+  const T = TRACKS[mus.name], now = AC.currentTime;
+  if (mus.next < now) mus.next = now + 0.05;
+  while (mus.next < now + 0.3) {
+    const i = mus.i % T.lead.length, n = T.lead[i];
+    if (n) tone(midi(n), T.step * .9, 'square', .02, mus.next - now);
+    if (i % 4 === 0) { const b = T.bass[(i / 4) % T.bass.length]; if (b) tone(midi(b), T.step * 3.6, 'triangle', .045, mus.next - now); }
+    mus.next += T.step; mus.i++;
+  }
+}, 100);
+document.addEventListener('visibilitychange', () => { if (AC) { if (document.hidden) AC.suspend(); else AC.resume(); } });
+
+// ------------------------------------------------------------------ input
+const held = {}, heldT = {};
+const inputQ = [];
+let btnWait = null;
+function press(b) { initAudio(); inputQ.push(b); }
+function setHeld(b, on) {
+  if (on && !held[b]) { held[b] = true; heldT[b] = 0; press(b); if (navigator.vibrate) { try { navigator.vibrate(6); } catch (e) {} } }
+  else if (!on) held[b] = false;
+}
+const KEYMAP = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', z: 'a', Z: 'a', x: 'b', X: 'b', ' ': 'a',
+  Enter: 'start', Shift: 'select', Backspace: 'b', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right',
+  j: 'a', J: 'a', k: 'b', K: 'b', Escape: 'start', Tab: 'select' };
+addEventListener('keydown', (e) => { const b = KEYMAP[e.key]; if (!b) return; e.preventDefault(); if (!e.repeat) setHeld(b, true); });
+addEventListener('keyup', (e) => { const b = KEYMAP[e.key]; if (b) setHeld(b, false); });
+addEventListener('blur', () => { for (const k in held) held[k] = false; });
+document.addEventListener('contextmenu', (e) => e.preventDefault());
+document.querySelectorAll('[data-btn]').forEach((el) => {
+  const b = el.dataset.btn;
+  const down = (e) => { e.preventDefault(); el.classList.add('on'); try { el.setPointerCapture(e.pointerId); } catch (x) {} setHeld(b, true); };
+  const up = (e) => { e.preventDefault(); el.classList.remove('on'); setHeld(b, false); };
+  el.addEventListener('pointerdown', down); el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up); el.addEventListener('lostpointercapture', up);
+});
+(() => { // D-pad: one touch area, slide your thumb between directions
+  const dp = document.getElementById('dpad'); let cur = null;
+  const dirAt = (e) => {
+    const r = dp.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    if (Math.hypot(dx, dy) < r.width * 0.1) return null;
+    return Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+  };
+  const set = (d) => { if (d === cur) return; if (cur) { setHeld(cur, false); dp.classList.remove(cur); } cur = d; if (d) { setHeld(d, true); dp.classList.add(d); } };
+  dp.addEventListener('pointerdown', (e) => { e.preventDefault(); try { dp.setPointerCapture(e.pointerId); } catch (x) {} set(dirAt(e)); });
+  dp.addEventListener('pointermove', (e) => { if (cur !== null || e.buttons) { if (e.pressure > 0 || e.buttons) set(dirAt(e)); } });
+  const end = (e) => { e.preventDefault(); set(null); };
+  dp.addEventListener('pointerup', end); dp.addEventListener('pointercancel', end); dp.addEventListener('lostpointercapture', end);
+})();
+function fit() {
+  const shell = document.getElementById('shell').getBoundingClientRect();
+  const land = innerWidth > innerHeight && innerHeight <= 520;
+  let aw, ah;
+  if (land) { aw = shell.width - 2 * 185 - 30; ah = shell.height - 34; }
+  else { aw = shell.width - (shell.width < 430 ? 34 : 62); ah = shell.height * 0.52 - 40; }
+  const dpr = window.devicePixelRatio || 1;
+  let s = Math.min(aw / W, ah / H);
+  s = Math.max(1, Math.floor(s * dpr) / dpr);
+  cv.style.width = (W * s) + 'px'; cv.style.height = (H * s) + 'px';
+}
+addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 200));
+
+// ------------------------------------------------------------------ timing helpers
+let frame = 0;
+const timers = [];
+const wait = (n) => new Promise((r) => timers.push({ t: frame + n, r }));
+const waitBtn = (btns = ['a']) => new Promise((r) => { btnWait = { btns, r }; });
+// wait for a button, but give up after n frames (keeps things moving)
+function waitBtnOr(n, btns = ['a', 'b']) {
+  return new Promise((r) => { let done = false; btnWait = { btns, r: (b) => { if (!done) { done = true; r(b); } } };
+    timers.push({ t: frame + n, r: () => { if (!done) { done = true; if (btnWait && btnWait.btns === btns) btnWait = null; r(null); } } }); });
+}
+const rnd = (n) => Math.floor(Math.random() * n);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// =====================================================================================
+// POCKET HAMSTER - a virtual pet. D-pad + A/B/Start/Select only.
+// =====================================================================================
+const FB = ['................', '...33....33.....', '..3113..3113....', '..31133331133...', '..300000000003..', '.30003000030003.', '.30003000030003.', '.30000033000003.',
+  '.30110000001103.', '.30000000000003.', '..300000000003..', '..301000000103..', '...3000000003...', '...3300330033...', '....33..33......', '................'].map((r) => r.padEnd(16, '.').slice(0, 16));
+const SRC = (typeof HSPR !== 'undefined') ? HSPR : {};
+const IMG = {};
+function bake(rows) { const c = document.createElement('canvas'); c.width = 16; c.height = 16; const g = c.getContext('2d');
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const ch = (rows[y] || '')[x]; if (ch >= '0' && ch <= '3') { g.fillStyle = C[+ch]; g.fillRect(x, y, 1, 1); } } return c; }
+const ok = (r) => Array.isArray(r) && r.length === 16 && r.every((s) => typeof s === 'string' && s.length === 16);
+function buildSprites() { for (const k of ['idle1', 'idle2', 'walk1', 'walk2', 'eat1', 'eat2', 'sleep1', 'sleep2', 'happy', 'sad', 'sick']) IMG[k] = bake(ok(SRC[k]) ? SRC[k] : FB);
+  for (const k of ['seed', 'carrot', 'treat', 'poop', 'heart', 'pill']) IMG[k] = ok(SRC[k]) ? bake(SRC[k]) : null; }
+const MENU = ['FEED', 'PLAY', 'SLEEP', 'CLEAN', 'HEAL', 'INFO'];
+const FOODS = [{ n: 'SEED', k: 'seed', hu: 22, ha: 2, w: 1 }, { n: 'CARROT', k: 'carrot', hu: 14, ha: 5, w: 0 }, { n: 'TREAT', k: 'treat', hu: 8, ha: 16, w: 2 }];
+const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const G = { scene: 'title', P: null, mi: 0, sub: null, fi: 0, hx: 80, dir: 1, act: null, actT: 0, msg: '', msgT: 0, name: '', nc: 0, game: null, tIdx: 0 };
+window.__g = G;
+const clamp100 = (v) => Math.max(0, Math.min(100, v));
+function newPet(name) { return { name, hunger: 70, happy: 70, energy: 80, clean: 100, age: 0, weight: 30, poops: [], sick: false, asleep: false, neglect: 0, last: Date.now() }; }
+function save() { if (G.P) { G.P.last = Date.now(); store.set('pockethamster_save', G.P); } }
+function load() { const p = store.get('pockethamster_save'); return (p && typeof p.name === 'string' && typeof p.hunger === 'number' && Array.isArray(p.poops)) ? p : null; }
+function say(s, t = 150) { G.msg = s; G.msgT = t; }
+function stage(p) { return p.age < 120 ? 'BABY' : p.age < 420 ? 'YOUNG' : 'ADULT'; }
+function tick(p, n = 1) {           // one game second
+  for (let i = 0; i < n; i++) {
+    p.age++;
+    if (p.asleep) { p.energy = clamp100(p.energy + 2.2); p.hunger = clamp100(p.hunger - 0.25); if (p.energy >= 100) { p.asleep = false; if (n === 1) { say(p.name + ' WOKE UP!'); music('player'); } } }
+    else { p.hunger = clamp100(p.hunger - 0.55); p.happy = clamp100(p.happy - 0.35); p.energy = clamp100(p.energy - 0.3); }
+    p.clean = clamp100(p.clean - p.poops.length * 0.9);
+    if (!p.asleep && p.poops.length < 4 && Math.random() < 0.035) p.poops.push(20 + Math.floor(Math.random() * 100));
+    if (!p.sick && (p.clean < 25 || p.hunger < 8) && Math.random() < 0.05) { p.sick = true; if (n === 1) { say(p.name + ' FEELS SICK!'); SFX.err(); } }
+    if (p.sick) p.happy = clamp100(p.happy - 0.6);
+    if (p.hunger < 20) p.happy = clamp100(p.happy - 0.4);
+    if (p.hunger < 35 && p.weight > 20 && p.age % 20 === 0) p.weight--;
+    p.neglect = (p.hunger <= 0 && p.happy <= 0) ? p.neglect + 1 : Math.max(0, p.neglect - 1);
+  }
+}
+function mood(p) { return p.sick ? 'sick' : p.asleep ? 'sleep' : (p.hunger < 25 || p.happy < 25) ? 'sad' : p.happy > 75 ? 'happy' : 'ok'; }
+function startAct(a, t) { G.act = a; G.actT = t; }
+function doMenu() {
+  const p = G.P, m = MENU[G.mi];
+  if (p.asleep && m !== 'SLEEP' && m !== 'INFO') { say('SHH... ' + p.name + ' IS ASLEEP.'); SFX.err(); return; }
+  if (m === 'FEED') { G.sub = 'feed'; G.fi = 0; G.msgT = 0; SFX.ok(); }
+  else if (m === 'PLAY') { if (p.energy < 15) { say(p.name + ' IS TOO TIRED TO PLAY.'); SFX.err(); return; } if (p.sick) { say(p.name + ' IS TOO SICK TO PLAY.'); SFX.err(); return; } G.sub = 'play'; G.game = { t: 420, n: 0, spin: 0, ready: 60 }; SFX.ok(); }
+  else if (m === 'SLEEP') { if (!p.asleep && p.energy > 95) { say(p.name + ' IS NOT SLEEPY.'); SFX.err(); return; } p.asleep = !p.asleep; say(p.asleep ? 'LIGHTS OFF. GOOD NIGHT!' : 'GOOD MORNING, ' + p.name + '!'); SFX.ok(); music(p.asleep ? null : 'player'); }
+  else if (m === 'CLEAN') { if (!p.poops.length && p.clean > 90) { say('THE CAGE IS ALREADY CLEAN.'); SFX.err(); return; } p.poops = []; p.clean = 100; say('SPARKLING CLEAN!'); SFX.heal(); startAct('clean', 50); }
+  else if (m === 'HEAL') { if (!p.sick) { say(p.name + ' IS NOT SICK.'); SFX.err(); return; } p.sick = false; p.happy = clamp100(p.happy - 5); say('MEDICINE WORKED! ALL BETTER.'); SFX.heal(); startAct('heal', 60); }
+  else if (m === 'INFO') { G.sub = 'info'; SFX.ok(); }
+  save();
+}
+function onBtn(b) {
+  if (G.scene === 'title') {
+    const items = load() ? ['CONTINUE', 'NEW HAMSTER'] : ['NEW HAMSTER'];
+    if (b === 'up' || b === 'down') { G.tIdx = (G.tIdx + 1) % items.length; SFX.move(); }
+    else if (b === 'select') setPal(palIdx + 1);
+    else if (b === 'a' || b === 'start') { SFX.ok(); const it = items[G.tIdx % items.length];
+      if (it === 'CONTINUE') { const p = load(); const away = Math.min(600, Math.floor((Date.now() - (p.last || Date.now())) / 1000)); tick(p, Math.floor(away / 3)); G.P = p; G.scene = 'main'; music(p.asleep ? null : 'player'); say('WELCOME BACK! ' + p.name + ' MISSED YOU.'); }
+      else { G.scene = 'name'; G.name = ''; G.nc = 0; } }
+    return;
+  }
+  if (G.scene === 'name') {
+    const cols = 9, total = 28;                     // 26 letters + DEL + OK
+    if (b === 'left') G.nc = (G.nc + total - 1) % total; else if (b === 'right') G.nc = (G.nc + 1) % total;
+    else if (b === 'up' || b === 'down') { const rows = 4, r = (G.nc / cols) | 0, c = G.nc % cols; G.nc = Math.min(((r + (b === 'up' ? rows - 1 : 1)) % rows) * cols + c, total - 1); }
+    else if (b === 'b') { G.name = G.name.slice(0, -1); SFX.back(); return; }
+    else if (b === 'a' || b === 'start') {
+      if (b === 'start' || G.nc === 27) { if (!G.name) { SFX.err(); return; } G.P = newPet(G.name); G.scene = 'main'; G.mi = 0; G.sub = null; save(); music('player'); SFX.lvl(); say('SAY HELLO TO ' + G.name + '!', 200); startAct('happy', 120); return; }
+      if (G.nc === 26) { G.name = G.name.slice(0, -1); SFX.back(); return; }
+      if (G.name.length < 7) { G.name += LETTERS[G.nc]; SFX.ok(); } else SFX.err();
+      return;
+    }
+    SFX.move(); return;
+  }
+  if (G.scene === 'gone') { if (b === 'a' || b === 'start') { store.set('pockethamster_save', null); G.P = null; G.scene = 'title'; G.tIdx = 0; music('title'); } return; }
+  const p = G.P;
+  if (G.sub === 'info') { if (b === 'a' || b === 'b' || b === 'start') { G.sub = null; SFX.back(); } return; }
+  if (G.sub === 'feed') {
+    if (b === 'left') { G.fi = (G.fi + 2) % 3; SFX.move(); } else if (b === 'right') { G.fi = (G.fi + 1) % 3; SFX.move(); }
+    else if (b === 'b') { G.sub = null; SFX.back(); }
+    else if (b === 'a') { const f = FOODS[G.fi]; G.sub = null;
+      if (p.hunger > 95) { say(p.name + ' IS FULL!'); SFX.err(); return; }
+      p.hunger = clamp100(p.hunger + f.hu); p.happy = clamp100(p.happy + f.ha); p.weight = Math.min(99, p.weight + f.w); G.food = f; startAct('eat', 110); say('NOM NOM NOM...'); SFX.ok(); save(); }
+    return;
+  }
+  if (G.sub === 'play') { const g = G.game; if (g.ready <= 0 && g.t > 0 && b === 'a') { g.n++; g.spin += 3; tone(500 + Math.min(600, g.n * 8), .03, 'square', .03); } else if (b === 'b' && g.t <= 0) { G.sub = null; } return; }
+  if (b === 'left') { G.mi = (G.mi + MENU.length - 1) % MENU.length; SFX.move(); }
+  else if (b === 'right') { G.mi = (G.mi + 1) % MENU.length; SFX.move(); }
+  else if (b === 'a') doMenu();
+  else if (b === 'start') { G.sub = 'info'; SFX.ok(); }
+  else if (b === 'select') setPal(palIdx + 1);
+  else if (b === 'b') { say(mood(p) === 'happy' ? p.name + ' SQUEAKS HAPPILY!' : mood(p) === 'sad' ? p.name + ' LOOKS AT YOU SADLY...' : p.name + ' WIGGLES ITS NOSE.'); tone(1400, .05, 'square', .04); tone(1700, .05, 'square', .04, .07); }
+}
+let sec = 0;
+function update() {
+  frame++;
+  for (const d of ['up', 'down', 'left', 'right']) if (held[d]) { heldT[d]++; if (heldT[d] > 24 && heldT[d] % 10 === 0) inputQ.push(d); }
+  while (inputQ.length) onBtn(inputQ.shift());
+  if (G.msgT > 0) G.msgT--;
+  if (G.scene !== 'main') return;
+  const p = G.P;
+  if (G.sub === 'play') { const g = G.game; if (g.ready > 0) g.ready--; else if (g.t > 0) { g.t--; g.spin *= 0.97; if (g.t === 0) { const sc = g.n; p.happy = clamp100(p.happy + 10 + Math.min(30, sc / 2)); p.energy = clamp100(p.energy - 12); p.hunger = clamp100(p.hunger - 6); if (sc > 30 && p.weight > 20) p.weight--; SFX.win(); save(); } } else { g.done = (g.done || 0) + 1; if (g.done > 150) { G.sub = null; say(g.n >= 40 ? 'WHAT A RUN! ' + p.name + ' LOVED IT!' : p.name + ' HAD FUN!'); startAct('happy', 90); } } return; }
+  if (G.actT > 0) { G.actT--; if (G.actT === 0) G.act = null; }
+  if (++sec >= 60) { sec = 0; tick(p); if (p.age % 10 === 0) save(); if (p.neglect > 90) { G.scene = 'gone'; music(null); SFX.lose(); } }
+  if (!p.asleep && !G.act && !p.sick) { if (frame % 3 === 0) G.hx += G.dir * (mood(p) === 'sad' ? 0.5 : 1); if (G.hx > 118) G.dir = -1; if (G.hx < 34) G.dir = 1; if (Math.random() < 0.004) G.dir *= -1; }
+}
+function bar(x, y, label, v) { txt(label, x, y, 3); rect(x + 9, y, 26, 5, 3); rect(x + 10, y + 1, 24, 3, 0); rect(x + 10, y + 1, Math.round(24 * v / 100), 3, v < 25 ? ((frame >> 3) & 1 ? 3 : 1) : 2); }
+function drawHam(x, y, key, flip, sc) { const im = IMG[key] || IMG.idle1; cx.save(); cx.translate(Math.round(x), Math.round(y)); if (flip) cx.scale(-1, 1); cx.drawImage(im, -8 * sc, -16 * sc, 16 * sc, 16 * sc); cx.restore(); }
+function drawItem(k, x, y, sc = 1) { if (IMG[k]) cx.drawImage(IMG[k], x - 8 * sc, y - 8 * sc, 16 * sc, 16 * sc); else { rect(x - 3, y - 3, 6, 6, 3); rect(x - 2, y - 2, 4, 4, k === 'poop' ? 2 : 1); } }
+function drawCage(p, night) {
+  rect(0, 0, W, H, 0);
+  for (let x = 4; x < W; x += 12) rect(x, 22, 1, 84, 1);                                   // bars
+  rect(0, 22, W, 1, 2); rect(0, 106, W, 2, 3); rect(0, 108, W, 18, 1);
+  for (let i = 0; i < 30; i++) rect((i * 37) % W, 110 + (i * 7) % 14, 2, 1, 2);            // bedding
+  rect(6, 30, 8, 40, 3); rect(8, 32, 4, 30, 1); rect(9, 70, 2, 8, 3);                      // water bottle
+  rect(8, 84, 26, 22, 3); rect(10, 86, 22, 20, 1); rect(16, 94, 10, 12, 3); for (let i = 0; i < 6; i++) rect(8 + i, 84 - i, 26 - i * 2, 1, 3); // house
+  const wx = 134, wy = 82; for (let a = 0; a < 40; a++) { const an = a / 40 * Math.PI * 2; rect(Math.round(wx + Math.cos(an) * 20), Math.round(wy + Math.sin(an) * 20), 2, 2, 3); }
+  for (let s = 0; s < 4; s++) { const an = s * Math.PI / 2 + (G.sub === 'play' ? G.game.rot || 0 : 0); for (let r = 0; r < 20; r += 2) rect(Math.round(wx + Math.cos(an) * r), Math.round(wy + Math.sin(an) * r), 1, 1, 2); }
+  rect(wx - 1, wy, 3, 26, 3);
+}
+function draw() {
+  if (G.scene === 'title') {
+    rect(0, 0, W, H, 0); for (let i = 0; i < 12; i++) rect((i * 29 + (frame >> 2)) % 176 - 8, 104 + (i % 3) * 4, 3, 2, 1);
+    txtC('POCKET', 14, 1, 3); txtC('POCKET', 12, 3, 3); txtC('HAMSTER', 32, 2, 3);
+    drawHam(80, 96 + (((frame >> 4) & 1) ? 0 : -1), (frame >> 5) & 1 ? 'idle1' : 'idle2', false, 2);
+    const items = load() ? ['CONTINUE', 'NEW HAMSTER'] : ['NEW HAMSTER'];
+    items.forEach((it, i) => { const y = 108 + i * 10; if (i === G.tIdx % items.length) { rect(40, y - 2, 80, 9, 3); txtC(it, y, 0); } else txtC(it, y, 3); });
+    txtC('SELECT: SCREEN COLOR', 134, 2); return;
+  }
+  if (G.scene === 'name') {
+    rect(0, 0, W, H, 0); txtC('NAME YOUR HAMSTER', 8, 3); drawHam(80, 50, (frame >> 5) & 1 ? 'idle1' : 'idle2', false, 2);
+    box(36, 54, 88, 16); txtC(G.name + (((frame >> 4) & 1) && G.name.length < 7 ? '_' : ''), 59, 3, 2);
+    for (let i = 0; i < 28; i++) { const x = 12 + (i % 9) * 16, y = 80 + ((i / 9) | 0) * 13, lab = i < 26 ? LETTERS[i] : i === 26 ? 'DEL' : 'OK', w = i < 26 ? 11 : 15;
+      if (i === G.nc) { rect(x - 3, y - 3, w, 11, 3); txt(lab, x - (i < 26 ? 0 : 1), y, 0); } else txt(lab, x - (i < 26 ? 0 : 1), y, 3); }
+    txtC('A:PICK  B:ERASE  START:DONE', 134, 2); return;
+  }
+  if (G.scene === 'gone') { rect(0, 0, W, H, 3); txtC(G.P.name, 30, 0, 2); txtC('RAN AWAY TO FIND', 56, 1); txtC('A BETTER HOME...', 66, 1); txtC('TAKE BETTER CARE NEXT TIME!', 90, 1); if ((frame >> 4) & 1) txtC('PRESS A', 116, 0); return; }
+  const p = G.P, night = p.asleep;
+  if (night) { const o = C; C = [o[3], o[2], o[1], o[0]]; drawCage(p, true); C = o; } else drawCage(p, false);
+  if (G.sub === 'play') {
+    const g = G.game; g.rot = (g.rot || 0) + g.spin * 0.02;
+    drawHam(134, 100 + (g.spin > 1 && ((frame >> 2) & 1) ? -1 : 0), g.spin > 1 ? ((frame >> 2) & 1 ? 'walk1' : 'walk2') : 'idle1', false, 1);
+    box(10, 26, 98, 46);
+    if (g.ready > 0) { txtC2('WHEEL RUN!', 59, 32); txtC2('MASH A TO RUN', 59, 46); txtC2('READY...', 59, 58); }
+    else if (g.t > 0) { txtC2('GO! MASH A!', 59, 32); txt('SPINS ' + g.n, 20, 46, 3, 2); rect(16, 62, 86, 5, 3); rect(17, 63, Math.round(84 * g.t / 420), 3, 1); }
+    else { txtC2('FINISH!', 59, 32); txt('SPINS ' + g.n, 20, 46, 3, 2); txtC2(g.n >= 40 ? 'AMAZING!' : g.n >= 20 ? 'GOOD RUN!' : 'NICE TRY!', 59, 62); }
+  } else {
+    for (const x of p.poops) drawItem('poop', x, 112);
+    const m = mood(p); let key = (frame >> 5) & 1 ? 'idle1' : 'idle2', x = G.hx, y = 110;
+    const scl = stage(p) === 'BABY' ? 1 : 2;
+    if (p.asleep) { key = (frame >> 6) & 1 ? 'sleep1' : 'sleep2'; x = 60; }
+    else if (G.act === 'eat') { key = (frame >> 3) & 1 ? 'eat1' : 'eat2'; if (G.actT > 30) drawItem(G.food.k, x + (G.dir > 0 ? 14 : -14) * scl / 2 + (G.dir > 0 ? 6 : -6), 104); }
+    else if (G.act === 'happy' || G.act === 'clean' || G.act === 'heal') { key = 'happy'; y -= (frame >> 3) & 1 ? 3 : 0; }
+    else if (m === 'sick') key = 'sick'; else if (m === 'sad') key = 'sad';
+    else if (frame % 3 === 0 || true) key = (frame >> 3) & 1 ? 'walk1' : 'walk2';
+    if (night) { const o = C; C = [o[3], o[2], o[1], o[0]]; }
+    drawHam(x, y, key, G.dir < 0 && !p.asleep, scl);
+    if (night) { C = [C[3], C[2], C[1], C[0]]; txt('Z', x + 14, 84 - ((frame >> 4) & 3) * 2, 0); txt('Z', x + 20, 76 - ((frame >> 4) & 3) * 2, 0, 2); }
+    if (G.act === 'happy' && IMG.heart) drawItem('heart', x, y - 16 * scl - 8 - ((frame >> 3) & 3));
+    if (G.act === 'heal') drawItem('pill', x + 16, y - 20);
+    if (G.act === 'clean') for (let i = 0; i < 6; i++) txt('*', 20 + i * 22, 100 + ((frame + i * 5) >> 2) % 12, 3);
+    if (m === 'sick' && ((frame >> 4) & 1)) txt('!', x - 1, y - 16 * scl - 8, 3, 2);
+  }
+  rect(0, 0, W, 21, 0); rect(0, 21, W, 1, 3);
+  txt(p.name, 3, 2, 3); txtR(stage(p) + ' DAY ' + (1 + Math.floor(p.age / 120)), 157, 2, 2);
+  bar(3, 11, 'F', p.hunger); bar(42, 11, 'H', p.happy); bar(81, 11, 'E', p.energy); bar(120, 11, 'C', p.clean);
+  rect(0, 126, W, 18, 0); rect(0, 126, W, 1, 3);
+  if (G.msgT > 0) { const ls = wrap(G.msg, 152); txtC(ls[0], ls[1] ? 129 : 132, 3); if (ls[1]) txtC(ls[1], 136, 3); }
+  else if (G.sub === 'feed') FOODS.forEach((f, i) => { const x = 8 + i * 50; if (i === G.fi) { rect(x - 2, 129, 46, 12, 3); txt(f.n, x + 12, 133, 0); } else txt(f.n, x + 12, 133, 3); drawItem(f.k, x + 4, 135, 0.5); });
+  else MENU.forEach((m, i) => { const x = 2 + i * 26; if (i === G.mi) { rect(x, 130, 25, 10, 3); txt(m, x + Math.round((25 - tw(m)) / 2), 133, 0); } else txt(m, x + Math.round((25 - tw(m)) / 2), 133, 2); });
+  if (G.sub === 'info') {
+    box(14, 26, 132, 96); rect(14, 26, 132, 11, 3); txtC(p.name + "'S CARD", 29, 0);
+    const rows = [['STAGE', stage(p)], ['AGE', (1 + Math.floor(p.age / 120)) + ' DAYS'], ['WEIGHT', p.weight + ' G'], ['MOOD', mood(p) === 'ok' ? 'CONTENT' : mood(p).toUpperCase()], ['FOOD', Math.round(p.hunger) + '%'], ['HAPPY', Math.round(p.happy) + '%'], ['ENERGY', Math.round(p.energy) + '%'], ['CLEAN', Math.round(p.clean) + '%']];
+    rows.forEach((r, i) => { txt(r[0], 22, 42 + i * 9, 2); txtR(r[1], 138, 42 + i * 9, 3); });
+    txtC('F=FOOD H=HAPPY E=ENERGY C=CLEAN', 114, 2);
+  }
+}
+function txtC2(s, cxp, y) { txt(s, Math.round(cxp - tw(s) / 2), y, 3); }
+function setPal(i) { palIdx = ((i % PALS.length) + PALS.length) % PALS.length; C = PALS[palIdx]; buildSprites(); cv.style.background = C[0]; store.set('pockethamster_pal', palIdx); SFX.move(); }
+let last = 0, acc = 0;
+function loop(t) { if (!last) last = t; acc += Math.min(100, t - last); last = t; let n = 0;
+  try { while (acc >= 1000 / 60 && n < 5) { update(); acc -= 1000 / 60; n++; } if (n === 5) acc = 0; draw(); } catch (e) { if (window.console) console.error(e); }
+  requestAnimationFrame(loop); }
+window.__tick = (n) => { for (let i = 0; i < n; i++) update(); }; window.__press = (b) => inputQ.push(b); window.__draw = draw;
+addEventListener('pagehide', save); document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+const sp0 = store.get('pockethamster_pal'); if (typeof sp0 === 'number') { palIdx = sp0 % PALS.length; C = PALS[palIdx]; }
+buildSprites(); cv.style.background = C[0]; fit(); music('title'); requestAnimationFrame(loop);
+})();
+
+</script>
+</body>
+</html>
