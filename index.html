@@ -8,6 +8,7 @@
 <meta name="theme-color" content="#22222a">
 <title>POCKET HAMSTER - a virtual pet</title>
 <style>
+*{touch-action:none}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:#1c1c22;overflow:hidden;touch-action:none;
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;
@@ -781,6 +782,17 @@ const sp0 = store.get('pockethamster_pal'); if (typeof sp0 === 'number') { palId
 buildSprites(); cv.style.background = C[0]; fit(); music('title'); requestAnimationFrame(loop);
 })();
 
+</script>
+<script>
+// No zooming: block double-tap zoom, pinch zoom and iOS gesture zoom everywhere on the page.
+(function () {
+  var opt = { passive: false };
+  document.addEventListener('touchstart', function (e) { e.preventDefault(); }, opt);
+  document.addEventListener('touchmove', function (e) { e.preventDefault(); }, opt);
+  document.addEventListener('touchend', function (e) { e.preventDefault(); }, opt);
+  ['gesturestart', 'gesturechange', 'gestureend', 'dblclick'].forEach(function (n) { document.addEventListener(n, function (e) { e.preventDefault(); }, opt); });
+  document.addEventListener('wheel', function (e) { if (e.ctrlKey) e.preventDefault(); }, opt);
+})();
 </script>
 </body>
 </html>
